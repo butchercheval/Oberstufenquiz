@@ -597,9 +597,6 @@
   // Neue Schülerliste inkl. Testnutzer
   const schuelerListe = ["Razan", "Yazan", "Pauline", "Betty", "Annika", "Benita", "Sarah", "Lena", "Nazanin", "Lina", "Farah", "Ben", "Julian", "Jonas", "Peter", "Eva-Luise", "Anastasia", "Elisa", "Salam", "Lara", "Gabriela", "Clara"];
   
-  // Anti-Spick-Route
-  const routeGroup2 = ["Yazan", "Betty", "Benita", "Lena", "Lina", "Ben", "Jonas", "Eva-Luise", "Elisa", "Lara", "Clara"];
-  
   // NEU: Extra Zeit Gruppe (18 Minuten)
   const extendedTimeGroup = ["Salam", "Nazanin", "Razan", "Yazan", "Farah", "Anastasia", "Gabriela"];
 
@@ -660,12 +657,20 @@
     let s = timeRemaining % 60;
     document.getElementById('timer-box').innerText = `⏱️ ${m}:${s < 10 ? '0' : ''}${s}`;
 
-    if(routeGroup2.includes(name)) {
-        myRoute = [2, 3, 1]; 
-    } else {
-        myRoute = [1, 2, 3]; 
-    }
+    // NEU: Zufällige Reihenfolge der Kapitel (Teil 1, 2, 3)
+    myRoute = [1, 2, 3].sort(() => Math.random() - 0.5);
     currentRouteStep = 0;
+
+    // NEU: Antwortmöglichkeiten für MC (q12-q19) und Lücken (q20-q25) mischen
+    document.querySelectorAll('.inline-group').forEach(group => {
+        let qNum = parseInt(group.dataset.id.replace('q', ''));
+        // Wir mischen nur MC und Lücken, NICHT W/F (q1-q11)
+        if (qNum >= 12 && qNum <= 25) {
+            let children = Array.from(group.children);
+            children.sort(() => Math.random() - 0.5);
+            children.forEach(c => group.appendChild(c));
+        }
+    });
 
     const allInternalNexts = ['btn-quiz-1-1', 'btn-quiz-2-1', 'btn-quiz-2-2', 'btn-quiz-2-3', 'btn-quiz-2-4', 'btn-quiz-2-5', 'btn-quiz-2-6', 'btn-quiz-2-7'];
     allInternalNexts.forEach(id => {
@@ -873,7 +878,7 @@
     const correctVals = solutions[qIdx];
     const val = el.dataset.val;
     
-    // NEU: Schwör-Joker bei Multiple Choice blockieren!
+    // Schwör-Joker bei Multiple Choice blockieren
     if (swearActive) {
         const sBox = document.getElementById('swear-box');
         sBox.style.animation = 'none'; 
@@ -888,7 +893,7 @@
         el.appendChild(pop);
         setTimeout(() => { if (pop.parentElement) pop.parentElement.removeChild(pop); }, 1500);
         
-        toggleSwear(); // Joker wieder deaktivieren
+        toggleSwear(); 
         return;
     }
 
