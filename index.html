@@ -2,7 +2,6 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<!-- WICHTIG: iPad-Optimierung -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Quiz: Sozialer & demografischer Wandel</title>
 <style>
@@ -340,7 +339,6 @@
 </head>
 <body class="mode-intro">
 
-<!-- Floating UI Elements -->
 <div id="top-right-container">
   <div id="buy-time-btn" onclick="buyTime()">+1 Min (-1 Pkt)</div>
   <div id="timer-box">⏱️ 15:00</div>
@@ -353,7 +351,6 @@
 
 <div class="container">
   
-  <!-- STEP 1: WELCOME -->
   <div id="step-start" class="step active">
     <div class="intro-title">Sozialer &<br>Demografischer Wandel</div>
     <div class="lower-third">
@@ -366,14 +363,10 @@
     <button class="nav-btn active-btn" style="background: #ff00cc; color: white;" onclick="goToCheckin()">STARTEN</button>
   </div>
 
-  <!-- STEP TRANSITION -->
   <div id="step-transition" class="step" style="text-align: center;">
      <h1 id="transText" style="font-size: 6em; margin-top: 30vh; opacity:0; transition: 0.5s; color: white; text-shadow: 6px 6px 0 black; transform: rotate(-2deg);">LOS GEHT'S!<br>BAM!</h1>
   </div>
 
-  <!-- =========================================================
-       KAPITEL 1: WAHR ODER FALSCH
-       ========================================================= -->
   <div id="step-chap-1" class="step">
     <div class="container-card" style="text-align:center;">
       <h2 class="big-text">Teil 1: Fakt oder Fake?</h2>
@@ -409,9 +402,6 @@
     </div>
   </div>
 
-  <!-- =========================================================
-       KAPITEL 2: MULTIPLE CHOICE (Getrennt in 8 Seiten)
-       ========================================================= -->
   <div id="step-chap-2" class="step">
     <div class="container-card" style="text-align:center;">
       <h2 class="big-text">Teil 2: Multiple Choice</h2>
@@ -550,9 +540,6 @@
     </div>
   </div>
 
-  <!-- =========================================================
-       KAPITEL 3: LÜCKENTEXT
-       ========================================================= -->
   <div id="step-chap-3" class="step">
     <div class="container-card" style="text-align:center;">
       <h2 class="big-text">Teil 3: Lückentext</h2>
@@ -579,7 +566,6 @@
   </div>
 
 
-  <!-- RESULT STEP (INCL. LOCK SCREEN) -->
   <div id="step-end" class="step">
     <div class="container-card" style="text-align:center;">
       <h2 class="big-text">DEIN ERGEBNIS</h2>
@@ -614,6 +600,9 @@
   // Anti-Spick-Route
   const routeGroup2 = ["Yazan", "Betty", "Benita", "Lena", "Lina", "Ben", "Jonas", "Eva-Luise", "Elisa", "Lara", "Clara"];
   
+  // NEU: Extra Zeit Gruppe (18 Minuten)
+  const extendedTimeGroup = ["Salam", "Nazanin", "Razan", "Yazan", "Farah", "Anastasia", "Gabriela"];
+
   let myRoute = [1, 2, 3]; 
   let currentRouteStep = 0;   
   
@@ -638,7 +627,7 @@
   let fiftyFiftyApplied = new Array(25).fill(false);
   let swornAnswers = new Array(25).fill(false);
 
-  let timeRemaining = 900; // 15 Minuten
+  let timeRemaining = 900; // Wird beim Start dynamisch angepasst
   let timerInterval = null;
   let timeTaken = 0; 
 
@@ -658,6 +647,18 @@
   function goToCheckin() {
     const name = document.getElementById('userSelect').value;
     if(!name) return;
+
+    // Dynamische Zeitvergabe (15 vs 18 Minuten)
+    if (extendedTimeGroup.includes(name)) {
+        timeRemaining = 1080; // 18 Minuten in Sekunden
+    } else {
+        timeRemaining = 900;  // 15 Minuten in Sekunden
+    }
+
+    // Anzeige sofort aktualisieren, bevor der Timer startet
+    let m = Math.floor(timeRemaining / 60);
+    let s = timeRemaining % 60;
+    document.getElementById('timer-box').innerText = `⏱️ ${m}:${s < 10 ? '0' : ''}${s}`;
 
     if(routeGroup2.includes(name)) {
         myRoute = [2, 3, 1]; 
@@ -872,34 +873,26 @@
     const correctVals = solutions[qIdx];
     const val = el.dataset.val;
     
+    // NEU: Schwör-Joker bei Multiple Choice blockieren!
     if (swearActive) {
-        if (fiftyFiftyApplied[qIdx]) {
-            const sBox = document.getElementById('swear-box');
-            sBox.style.animation = 'none'; void sBox.offsetWidth; sBox.style.animation = 'comic-pulse 0.2s 2';
-            return;
-        }
-        swearJokersLeft--;
-        swornAnswers[qIdx] = true;
+        const sBox = document.getElementById('swear-box');
+        sBox.style.animation = 'none'; 
+        void sBox.offsetWidth; 
+        sBox.style.animation = 'comic-pulse 0.2s 3'; 
         
-        el.classList.toggle('comic-selected');
+        const pop = document.createElement('div');
+        pop.className = 'comic-pop';
+        pop.innerText = "HIER NICHT!";
+        pop.style.background = "#e74c3c"; 
+        pop.style.color = "white";
+        el.appendChild(pop);
+        setTimeout(() => { if (pop.parentElement) pop.parentElement.removeChild(pop); }, 1500);
         
-        let selectedVals = [];
-        Array.from(group.children).forEach(c => {
-            c.style.pointerEvents = 'none';
-            if (c.classList.contains('comic-selected')) {
-                c.classList.add('comic-sworn');
-                selectedVals.push(c.dataset.val);
-            } else {
-                c.classList.add('comic-destroyed');
-            }
-        });
-        
-        answers[qIdx] = selectedVals.length > 0 ? selectedVals : null;
-        updateSwearUI();
-        updateNavButtons();
+        toggleSwear(); // Joker wieder deaktivieren
         return;
     }
 
+    // Normales 50/50 Verhalten
     if (jokerActive) {
         if (swornAnswers[qIdx]) return;
         jokersLeft--;
@@ -976,7 +969,10 @@
     document.getElementById('top-right-container').style.display = 'none';
     document.getElementById('joker-container').style.display = 'none';
     
-    timeTaken = (900 + (boughtTimePenalties * 60)) - timeRemaining;
+    // Berechne die genommene Zeit abhängig von der dynamischen Startzeit
+    const selectedName = document.getElementById('userSelect').value;
+    let baseTime = extendedTimeGroup.includes(selectedName) ? 1080 : 900;
+    timeTaken = (baseTime + (boughtTimePenalties * 60)) - timeRemaining;
 
     let maxPunkte = 0;
     let baseScore = 0;
